@@ -1,11 +1,12 @@
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
+const https = require('https');
 
 // --- CONFIGURAÇÃO ---
 const DATA_FERIAS = new Date('2026-08-01'); // Dia da viagem
 const GRUPO_ID = "120363409117435302@g.us"; // ID correto do grupo "Gerês 2k26"
 
-// --- CONTEÚDO DIÁRIO (Com GIFs temáticos estáveis, texto formatado e sondagens) ---
+// --- CONTEÚDO DIÁRIO (Com links diretos estáveis) ---
 const conteudoDiario = {
     9: {
         texto: "_Acordem malta!_ Faltam **9 DIAS** para a desgraça. 🍻 O centro de emprego que nos perdoe, mas o foco agora é outro!",
@@ -81,6 +82,21 @@ const conteudoDiario = {
     }
 };
 
+// Função auxiliar para baixar a imagem para Buffer de forma segura
+function baixarBuffer(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            if (res.statusCode !== 200) {
+                reject(new Error(`Falha ao descarregar, status: ${res.statusCode}`));
+                return;
+            }
+            const pedacos = [];
+            res.on('data', (pedaco) => pedacos.push(pedaco));
+            res.on('end', () => resolve(Buffer.concat(pedacos)));
+        }).on('error', reject);
+    });
+}
+
 async function executarBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
 
@@ -111,9 +127,13 @@ async function executarBot() {
             if (conteudoDiario[diffDias]) {
                 const diaAtual = conteudoDiario[diffDias];
                 
-                // Envia o GIF/Imagem com o texto formatado como legenda
+                console.of = console.log;
+                console.log(`A descarregar o GIF para o dia ${diffDias}...`);
+                const bufferImagem = await baixarBuffer(diaAtual.imagem);
+
+                // Envia a imagem a partir do buffer descarregado localmente
                 await sock.sendMessage(GRUPO_ID, { 
-                    image: { url: diaAtual.imagem }, 
+                    image: bufferImagem, 
                     caption: diaAtual.texto 
                 });
                 
@@ -132,8 +152,9 @@ async function executarBot() {
             }
 
         } else if (diffDias === 0) {
+            const bufferFinal = await baixarBuffer("https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif");
             await sock.sendMessage(GRUPO_ID, { 
-                image: { url: "https://media.giphy.com/media/3oKIPnAiaMCws8nOsE/giphy.gif" },
+                image: bufferFinal, 
                 caption: "🚨 **É HOJE MALTA!!!** BORA APANHAR A PUTA! 🎉✈️🍻🪗🍫" 
             });
             console.log("[DIA 0] Mensagem final enviada!");
