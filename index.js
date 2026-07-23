@@ -1,11 +1,10 @@
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 
-const GRUPO_ID = "SEU_ID_DO_GRUPO_AQUI@g.us"; 
+const GRUPO_ID = "SEU_ID_DO_GRUPO_AQUI@g.us"; // Mantém o teu ID
 const DATA_FERIAS = new Date(2026, 7, 1); // 1 de Agosto de 2026
 
 async function enviarMensagem() {
-    // Usa a pasta de sessão que está guardada no repositório
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
 
     const sock = makeWASocket({
@@ -15,32 +14,37 @@ async function enviarMensagem() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Espera un pouco até estabelecer a ligação por socket
+    // Espera a conexão abrir e estabilizar
     await new Promise((resolve) => {
         sock.ev.on('connection.update', (update) => {
             if (update.connection === 'open') {
-                resolve();
+                setTimeout(resolve, 3000); // Dá 3 segundos para sincronizar os chats
             }
         });
     });
 
-    const hoje = new Date();
-    const diffTempo = DATA_FERIAS.getTime() - hoje.getTime();
-    const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
+    try {
+        const hoje = new Date();
+        const diffTempo = DATA_FERIAS.getTime() - hoje.getTime();
+        const diffDias = Math.ceil(diffTempo / (1000 * 60 * 60 * 24));
 
-    console.log(`Faltam ${diffDias} dias para as férias.`);
-
-    if (diffDias > 0) {
-        if (diffDias === 1) {
-            await sock.sendMessage(GRUPO_ID, { text: "Falta 1 dia! Preparem-se!" });
+        let textoMensagem = "";
+        if (diffDias > 0) {
+            textoMensagem = diffDias === 1 ? "Falta 1 dia! Preparem-se!" : `Faltam ${diffDias} dias para as férias!`;
+        } else if (diffDias === 0) {
+            textoMensagem = "É HOJE MALTA! BORA!";
         } else {
-            await sock.sendMessage(GRUPO_ID, { text: `Faltam ${diffDias} dias para as férias!` });
+            textoMensagem = "As férias já passaram.";
         }
-    } else if (diffDias === 0) {
-        await sock.sendMessage(GRUPO_ID, { text: "É HOJE MALTA! BORA!" });
+
+        console.log(`A enviar mensagem para o grupo: ${GRUPO_ID}`);
+        await sock.sendMessage(GRUPO_ID, { text: textoMensagem });
+        console.log("Mensagem enviada com sucesso!");
+
+    } catch (error) {
+        console.error("Erro detalhado ao enviar:", error);
     }
 
-    // Dá 5 segundos para garantir que a mensagem é enviada e fecha o processo
     setTimeout(() => {
         process.exit(0);
     }, 5000);
