@@ -1,7 +1,7 @@
 const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 
-const GRUPO_ID = "SEU_ID_DO_GRUPO_AQUI@g.us"; // Mantém o teu ID
+const GRUPO_ID = "Gerês 2k26"; // Mantém o teu ID
 const DATA_FERIAS = new Date(2026, 7, 1); // 1 de Agosto de 2026
 
 async function enviarMensagem() {
