@@ -1,0 +1,26 @@
+name: Enviar Contagem Decrescente
+
+on:
+  schedule:
+    # Atenção: O GitHub Actions usa hora UTC. 
+    # Para disparar às 08:00 em Portugal continental (UTC+1 no verão), programamos para as 07:00 UTC.
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Permite testar o botão manualmente a qualquer momento
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aceder ao Repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependências
+        run: npm install
+
+      - name: Executar Bot
+        run: node index.js
